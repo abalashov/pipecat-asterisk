@@ -39,10 +39,8 @@ class FlowController:
     MIN_BATCH = 50
 
     # Based on Asterisk documentation.The maximum websocket message size the underlying websocket code can handle is 65500 bytes.
-    # We need to ensure we don't exceed this limit when sending audio chunks. However, if the size is 65500 - it kills the session with the following error
-    # DEBUG[22367][C-00000050]: chan_websocket.c:1107 read_from_ws_and_queue: WebSocket/pipecat/0xfffee4009f58: WebSocket read error
-    # To be safe we use 50000 bytes, it worked in tests without issues.
-    MAX_WS_SEND = 50000
+    # We need to ensure we don't exceed this limit when sending audio chunks.
+    MAX_WS_SEND = 65500
 
     def __init__(
         self, ptime: int, psize: int, websocket_client: FastAPIWebsocketClient
