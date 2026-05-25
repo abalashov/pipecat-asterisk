@@ -4,6 +4,9 @@
 # SPDX-License-Identifier: BSD-2-Clause
 #
 
+import asyncio
+import time
+
 from fastapi import WebSocket
 from loguru import logger
 from pipecat.transports.websocket.fastapi import (
@@ -93,7 +96,6 @@ class AsteriskWebsocketOutputTransport(FastAPIWebsocketOutputTransport):
                 f"{self} exception sending START_MEDIA_BUFFERING: {e.__class__.__name__} ({e})"
             )
 
-
     """Ask Asterisk's `chan_websocket` to report QUEUE_DRAINED in the future, so that we know
     when audio has been played out on the UX side.
     """
@@ -147,11 +149,13 @@ class AsteriskWebsocketOutputTransport(FastAPIWebsocketOutputTransport):
             # Drop any buffered audio in local and remote buffers to avoid replaying stale PCM
             if self._flow_controller:
                 self._flow_controller.drop_buffer()
-        elif (
-            isinstance(frame, InputTransportMessageFrame)
-            and frame.message.get("event", None) == "MEDIA_START"
-        ):
-            await self._media_start_handler(frame)
+        elif isinstance(frame, InputTransportMessageFrame):
+            ev_type = frame.message.get("event", None)
+            
+            if ev_type == "MEDIA_START":
+                await self._media_start_handler(frame)
+            elif ev_type == "QUEUE_DRAINED":
+                self._queue_drain_monitor.set()
 
     async def write_audio_frame(self, frame: OutputAudioRawFrame) -> bool:
         """Write an audio frame into local buffer.
